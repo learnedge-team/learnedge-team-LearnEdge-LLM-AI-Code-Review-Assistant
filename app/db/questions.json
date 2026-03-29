@@ -1,0 +1,17 @@
+[
+  {
+    "question_name": "Two Sum",
+    "problem_statement": "Write a function to return the sum of two numbers.",
+    "correct_approaches": [
+      "def add(a, b):\n    return a + b"
+    ]
+  },
+  {
+    "question_name": "Reverse String",
+    "problem_statement": "Write a function to reverse a string.",
+    "correct_approaches": [
+      "def reverse_string(s):\n    return s[::-1]",
+      "def reverse_string(s):\n    return ''.join(reversed(s))"
+    ]
+  }
+]
