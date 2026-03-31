@@ -4,7 +4,7 @@ import Editor from "@monaco-editor/react";
 
 
 
-export default function CodeReview() {
+export default function CodeReview({ xp, setXp, level, setLevel, calculateLevel, setStreak }) {
     const [code, setCode] = useState("");
     const [problem, setProblem] = useState("");
     const [output, setOutput] = useState("");
@@ -13,6 +13,7 @@ export default function CodeReview() {
     const [pingoState, setPingoState] = useState("idle");
     const [hasWelcomed, setHasWelcomed] = useState(false);
     const [language, setLanguage] = useState("javascript");
+    const [showLevelUp, setShowLevelUp] = useState(false);
 
 
     useEffect(() => {
@@ -25,6 +26,13 @@ export default function CodeReview() {
             }, 3000);
         }
     }, []);
+
+
+    useEffect(() => {
+        if (showLevelUp) {
+            setTimeout(() => setShowLevelUp(false), 2000);
+        }
+    }, [showLevelUp]);
 
 
 
@@ -65,7 +73,24 @@ export default function CodeReview() {
                 }
             );
 
-            const data = await response.json();
+            //llm Response
+            let data = {};
+
+            if (!response.ok) {
+                const errorText = await response.text();
+
+                console.log("SERVER ERROR:", errorText);
+
+                setFeedback({
+                    error: "⚠️ Server error. Try again later."
+                });
+
+                setLoading(false);
+                return;
+            }
+
+            data = await response.json();
+            console.log("FULL RESPONSE:", data);
 
             const result =
                 data.stderr ||
@@ -103,9 +128,11 @@ export default function CodeReview() {
             return;
         }
 
+        // "https://learnedge-ai-code-review-assistant-final.onrender.com/api/v1/review-code"
+
         try {
             const response = await fetch(
-                "https://ai-code-review-assistant-n7po.onrender.com/api/v1/review-code",
+                "https://learnedge-ai-code-review-assistant-final.onrender.com/api/v1/review-code",
                 {
                     method: "POST",
                     headers: {
@@ -120,15 +147,61 @@ export default function CodeReview() {
             );
 
             const data = await response.json();
-            setFeedback(data);
+
+            // 🔥 STREAK UPDATE (ADD HERE)
+            if (data.status === "success") {
+                setStreak((prev) => prev + 1);
+            } else {
+                setStreak(0);
+            }
+
+            let earnedXp = 0;
+
+            if (data.status === "success") {
+                earnedXp = 50; // correct solution
+            } else if (data.status === "needs_work") {
+                earnedXp = 20; // attempted but wrong
+            } else {
+                earnedXp = 10; // fallback
+            }
+
+            // 🔥 Apply XP
+            // 🔥 Calculate first
+
+            const newXp = xp + earnedXp;
+            const newLevel = calculateLevel(newXp);
+
+            // 🎉 Level up check
+            if (newLevel > level) {
+                setShowLevelUp(true);
+                setPingoState("happy");
+            }
+
+            // ✅ SAFE updates
+            setXp(newXp);
+            setLevel(newLevel);
+
+           setFeedback({
+  message: `🎉 You earned +${earnedXp} XP!`,
+  explanation: data.explanation,
+  hint: data.hint,
+  issues: data.issues,
+  fixed_code: data.fixed_code,
+  suggestion: data.suggestion
+});
 
             setPingoState("happy"); // 🎉 success
+
+            console.log("STATUS:", data.status);
+
         } catch (error) {
             setFeedback({ error: "❌ Error connecting to AI service" });
             setPingoState("idle");
         } finally {
             setLoading(false);
         }
+
+
     };
 
 
@@ -138,19 +211,19 @@ export default function CodeReview() {
         <div className="min-h-screen bg-slate-900 text-white p-4">
             <div className="flex items-center justify-center gap-1 mb-4">
 
-  {/* 🐧 Bigger Logo */}
-  <img
-    src="/src/assets/code-editor-logo.png"
-    alt="Pingo"
-    className="w-20 h-20 object-contain drop-shadow-xl"
-  />
+                {/* 🐧 Bigger Logo */}
+                <img
+                    src="/src/assets/code-editor-logo.png"
+                    alt="Pingo"
+                    className="w-20 h-20 object-contain drop-shadow-xl"
+                />
 
-  {/* ✨ Keep text same */}
-  <h1 className="text-3xl font-bold">
-    Pingo Code Review Assistant
-  </h1>
+                {/* ✨ Keep text same */}
+                <h1 className="text-3xl font-bold">
+                    Pingo Code Review Assistant
+                </h1>
 
-</div>
+            </div>
 
 
 
@@ -210,6 +283,11 @@ export default function CodeReview() {
 
                         {!loading && feedback && (
                             <>
+                                {feedback.message && (
+                                    <p className="text-green-400 font-semibold">
+                                        {feedback.message}
+                                    </p>
+                                )}
                                 {feedback.error && (
                                     <p className="text-red-400">{feedback.error}</p>
                                 )}
@@ -304,27 +382,55 @@ export default function CodeReview() {
                 )}
 
                 {/* 🐧 Mascot */}
-                <img
-                    src={
-                        pingoState === "running"
-                            ? "/src/assets/pingo-running.png"
-                            : pingoState === "thinking"
-                                ? "/src/assets/pingo-thinking.png"
-                                : pingoState === "happy"
-                                    ? "/src/assets/pingo-happy.png"
-                                    : "/src/assets/pingo-idle.png"
-                    }
-                    alt="Pingo"
-                    className={`w-16 md:w-20 transition-all duration-300 drop-shadow-lg animate-breathe ${pingoState === "running"
-                        ? "animate-bounce"
+                <div className="relative">
+
+                    {/* 🌟 Outer Glow */}
+                    <div className={`absolute inset-0 rounded-full blur-3xl opacity-40 ${pingoState === "running"
+                        ? "bg-yellow-400"
                         : pingoState === "thinking"
-                            ? "animate-pulse"
+                            ? "bg-purple-500"
                             : pingoState === "happy"
-                                ? "scale-110"
-                                : ""
-                        }`}
-                />
+                                ? "bg-green-400"
+                                : "bg-blue-500"
+                        }`}></div>
+
+                    {/* ⚡ Neon Ring */}
+                    <div className="absolute inset-0 rounded-full border-2 border-blue-400 opacity-60 animate-pulse"></div>
+
+                    {/* 🐧 Mascot */}
+                    <img
+                        src={
+                            pingoState === "running"
+                                ? "/src/assets/pingo-running.png"
+                                : pingoState === "thinking"
+                                    ? "/src/assets/pingo-thinking.png"
+                                    : pingoState === "happy"
+                                        ? "/src/assets/pingo-happy.png"
+                                        : "/src/assets/pingo-idle.png"
+                        }
+                        alt="Pingo"
+                        className="relative w-16 md:w-20 animate-breathe drop-shadow-[0_0_20px_rgba(59,130,246,0.8)]"
+                    />
+
+                </div>
             </div>
+
+            {showLevelUp && (
+                <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+
+                    <div className="bg-slate-800 p-8 rounded-2xl text-center shadow-2xl animate-scaleUp">
+
+                        <h2 className="text-3xl font-bold text-yellow-400 mb-2">
+                            🎉 Level Up!
+                        </h2>
+
+                        <p className="text-lg text-white">
+                            You reached Level {level} 🚀
+                        </p>
+
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
