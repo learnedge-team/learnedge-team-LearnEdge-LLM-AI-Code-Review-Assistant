@@ -5,6 +5,25 @@ import Editor from "@monaco-editor/react";
 
 
 export default function CodeReview({ xp, setXp, level, setLevel, calculateLevel, setStreak }) {
+
+    const updateScoreBackend = async (points) => {
+  try {
+    const token = localStorage.getItem("token");
+
+    await fetch("http://localhost:5000/api/leaderboard/update-score", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: token,
+      },
+      body: JSON.stringify({ points }),
+    });
+  } catch (err) {
+    console.error("Score sync failed:", err);
+  }
+};
+
+
     const [code, setCode] = useState("");
     const [problem, setProblem] = useState("");
     const [output, setOutput] = useState("");
@@ -165,22 +184,31 @@ export default function CodeReview({ xp, setXp, level, setLevel, calculateLevel,
                 earnedXp = 10; // fallback
             }
 
+            await updateScoreBackend(earnedXp);
+
             // 🔥 Apply XP
             // 🔥 Calculate first
 
-            const newXp = xp + earnedXp;
-            const newLevel = calculateLevel(newXp);
+           // 🔥 Apply XP
+const newXp = xp + earnedXp;
+const newLevel = calculateLevel(newXp);
 
-            // 🎉 Level up check
-            if (newLevel > level) {
-                setShowLevelUp(true);
-                setPingoState("happy");
-            }
+// 🎉 Level up check
+if (newLevel > level) {
+    setShowLevelUp(true);
+    setPingoState("happy");
+}
 
-            // ✅ SAFE updates
-            setXp(newXp);
-            setLevel(newLevel);
+// ✅ Update frontend
+setXp(newXp);
+setLevel(newLevel);
 
+// 🔥 UPDATE BACKEND SCORE
+await updateScoreBackend(earnedXp);
+
+
+
+        //Feadback Message
            setFeedback({
   message: `🎉 You earned +${earnedXp} XP!`,
   explanation: data.explanation,

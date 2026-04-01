@@ -4,10 +4,12 @@ import CodeReview from "./pages/CodeReview";
 import Modules from "./pages/Modules";
 import Topics from "./pages/Topics";
 import Quiz from "./pages/Quiz";
+import Login from "./pages/Login"; 
+import ProtectedRoute from "./components/ProtectedRoute"; 
+
 import { useState, useEffect } from "react";
 
 function App() {
-
   const [streak, setStreak] = useState(() => {
     return Number(localStorage.getItem("streak")) || 0;
   });
@@ -24,7 +26,6 @@ function App() {
     return Math.floor(xp / 100) + 1;
   };
 
-
   useEffect(() => {
     localStorage.setItem("xp", xp);
     localStorage.setItem("level", level);
@@ -38,27 +39,62 @@ function App() {
     <BrowserRouter>
       <Routes>
 
+        {/* 🔐 PUBLIC ROUTE */}
+        <Route path="/" element={<Login />} />
+
+        {/* 🔐 PROTECTED ROUTES */}
         <Route
-          path="/"
-          element={<Dashboard xp={xp} level={level} />}
-        />
-        <Route
-          path="/code"
+          path="/dashboard"
           element={
-            <CodeReview
-              xp={xp}
-              level={level}
-              setXp={setXp}
-              setLevel={setLevel}
-              calculateLevel={calculateLevel}
-              setStreak={setStreak}
-            />
+            <ProtectedRoute>
+              <Dashboard xp={xp} level={level} />
+            </ProtectedRoute>
           }
         />
 
-        <Route path="/modules" element={<Modules />} />
-        <Route path="/topics" element={<Topics />} />
-        <Route path="/quiz" element={<Quiz setXp={setXp} />} />
+        <Route
+          path="/code"
+          element={
+            <ProtectedRoute>
+              <CodeReview
+                xp={xp}
+                level={level}
+                setXp={setXp}
+                setLevel={setLevel}
+                calculateLevel={calculateLevel}
+                setStreak={setStreak}
+              />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/modules"
+          element={
+            <ProtectedRoute>
+              <Modules />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/topics"
+          element={
+            <ProtectedRoute>
+              <Topics />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/quiz"
+          element={
+            <ProtectedRoute>
+              <Quiz setXp={setXp} />
+            </ProtectedRoute>
+          }
+        />
+
       </Routes>
     </BrowserRouter>
   );
