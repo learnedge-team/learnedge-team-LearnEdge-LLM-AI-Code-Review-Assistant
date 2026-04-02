@@ -1,4 +1,3 @@
-// server.js
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
@@ -13,9 +12,12 @@ import leaderboardRoutes from "./routes/leaderboard.js";
 dotenv.config();
 
 const app = express();
+const PORT = process.env.PORT || 5000;
 
 // 🔌 Middlewares
-app.use(cors());
+app.use(cors({
+  origin: "*", // later replace with your frontend URL
+}));
 app.use(express.json());
 
 // 🔗 Routes
@@ -32,16 +34,23 @@ const io = new Server(server, {
   },
 });
 
-// 🔥 Export io so routes can use it
+// 🔥 Export io
 export { io };
+
+// 🧪 Test route (optional but useful)
+app.get("/", (req, res) => {
+  res.send("Backend is running 🚀");
+});
 
 // 🧠 DB + Server start
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log("MongoDB connected");
 
-    server.listen(5000, () => {
-      console.log("Server running on port 5000");
+    server.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
     });
   })
-  .catch(err => console.log(err));
+  .catch((err) => {
+    console.log("MongoDB error:", err);
+  });
