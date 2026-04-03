@@ -142,7 +142,7 @@ export default function Home() {
         <h2 className="text-2xl font-semibold mb-6
         transition-all duration-300
         hover:drop-shadow-[0_0_20px_rgba(96,165,250,0.7)]">
-          Start your journey today 🚀
+          Start your journey today 
         </h2>
 
         <button
